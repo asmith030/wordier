@@ -2,14 +2,16 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 )
 
 var (
-	words [16][2315]int
-	radix [16][243]int
+	words [12][2315]int
+	radix [12][243]int
 	table []byte
 )
 
@@ -78,15 +80,39 @@ func setup() {
 }
 
 func printWord(word int) {
-	fmt.Println(word)
+	jsonFile, err := os.Open("words.json")
+	if err != nil {
+		panic(err)
+	}
+	defer jsonFile.Close()
+
+	// read our opened xmlFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	words := []string{}
+
+	json.Unmarshal(byteValue, &words)
+
+	fmt.Println(words[2314-word])
 }
 
 func readScore(score string) int {
 	val, err := strconv.Atoi(score)
-	if err != nil {
-		panic(err)
+	if err == nil {
+		return val
 	}
-	return val
+	v := 0
+	placeVal := 1
+	for i := 0; i < 5; i++ {
+		if score[i] == byte('#') {
+			v += 2 * placeVal
+		}
+		if score[i] == byte('0') {
+			v += placeVal
+		}
+		placeVal = placeVal * 3
+	}
+	return v
 }
 
 func makeMove(depth, move, score, total int) int {
@@ -105,13 +131,11 @@ func main() {
 	depth := 0
 	total := 2315
 	move := 1636
-	remainder := 5
 	for i := 1; i < len(os.Args); i++ {
 		score := readScore(os.Args[i])
 		total = makeMove(depth, move, score, total)
 		depth += 1
-		remainder, move = solve(depth, 0, total, 15-depth)
+		_, move = solve(depth, 0, total, 11-depth)
 	}
-	fmt.Println(remainder)
 	printWord(move)
 }
